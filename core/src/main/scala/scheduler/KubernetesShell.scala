@@ -4,7 +4,7 @@ package scheduler
 import nelson.Datacenter.{Deployment, StackName}
 import nelson.Kubectl.{DeploymentStatus, JobStatus, KubectlError}
 import nelson.Manifest.{HealthCheck => _, _}
-import nelson.blueprint.{ContextRenderer, Render}
+import nelson.blueprint.Render
 import nelson.blueprint.DefaultBlueprints.canopus
 import nelson.docker.Docker.Image
 import nelson.scheduler.SchedulerOp._
@@ -67,9 +67,7 @@ final class KubernetesShell(
     error.stderr.exists(_.startsWith("Error from server (NotFound)"))
 
   def launch(image: Image, dc: Datacenter, ns: NamespaceName, unit: UnitDef, version: Version, plan: Plan, hash: String): IO[String] = {
-    val env = Render.makeEnv(
-      ContextRenderer.Base(image, dc, ns, unit, version, plan, hash)
-    )
+    val env = Render.makeDefaultEnv(image, dc, ns, unit, version, plan, hash)
 
     val fallback = mkFallback(unit, plan)(
       canopus.service,

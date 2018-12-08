@@ -16,7 +16,7 @@
 //: ----------------------------------------------------------------------------
 package nelson
 
-import nelson.blueprint.{Blueprint, ContextRenderer}
+import nelson.blueprint.Blueprint
 import cats.data.{EitherT, Kleisli, NonEmptyList, OptionT, ValidatedNel}
 import cats.effect.IO
 import cats.implicits._
@@ -384,15 +384,14 @@ object Nelson {
           Set("some-tag")
       )
       val proofingData: Map[String, EnvValue] =
-        Render.makeEnv(ContextRenderer.Base(
-          image,
+        Render.makeDefaultEnv(image,
           cfg.datacenters.head,
           NamespaceName("dev"),
           unit,
           version,
           Manifest.Plan.default,
           randomAlphaNumeric(8)
-        ))
+        )
       // NOTE: using random identifier here simply so that
       // even if template engine has caching engaged, we
       // always get a fresh result (cache busting FTW).

@@ -17,12 +17,12 @@
 package nelson
 
 import cats.syntax.apply._
-
 import nelson.Datacenter.{Deployment, Namespace => DCNamespace}
 import nelson.DeploymentStatus.{Pending, Ready, Terminated, Warming}
-import nelson.Manifest.{Namespace => ManifestNamespace, Plan, UnitDef, Versioned}
+import nelson.Manifest.{Plan, UnitDef, Versioned, Namespace => ManifestNamespace}
 import nelson.Workflow.{WorkflowF, WorkflowOp}
 import nelson.Workflow.syntax._
+import nelson.blueprint.Render
 import nelson.docker.DockerOp
 
 /**
@@ -30,6 +30,9 @@ import nelson.docker.DockerOp
  * authentication roles in Vault so that Kubernetes pods can talk to Vault at runtime.
  */
 object Pulsar extends Workflow[Unit] {
+
+  type Ctx = Unit
+
   val name: WorkflowRef = "pulsar"
 
   def deploy(id: ID, hash: String, vunit: UnitDef @@ Versioned, p: Plan, dc: Datacenter, ns: ManifestNamespace): WorkflowF[Unit] = {
@@ -71,4 +74,6 @@ object Pulsar extends Workflow[Unit] {
     delete(dc, d) *>
     status(d.id, Terminated, s"Decomissioning deployment ${stackName} in ${dc.name}")
   }
+
+  def renderer: Render[Ctx] = Render.PassThrough
 }

@@ -16,18 +16,21 @@
 //: ----------------------------------------------------------------------------
 package nelson
 
-import Manifest.{UnitDef,Versioned,Plan,TrafficShift}
-import Datacenter.{Namespace,Deployment}
+import Manifest.{Plan, TrafficShift, UnitDef, Versioned}
+import Datacenter.{Deployment, Namespace}
 import Workflow.WorkflowF
+import nelson.blueprint._
 import cats.implicits._
 
+
 object Magnetar extends Workflow[Unit] {
+
+  type Ctx = Magnetar.Context
+
   import Workflow.syntax._
   import DeploymentStatus._
 
   val name: WorkflowRef = "magnetar"
-
-  final case class Context(ns: NamespaceName, n: String)
 
   def deploy(id: ID, hash: String, vunit: UnitDef @@ Versioned, p: Plan, dc: Datacenter, ns: Manifest.Namespace): WorkflowF[Unit] = {
     val unit = Manifest.Versioned.unwrap(vunit)
@@ -79,4 +82,29 @@ object Magnetar extends Workflow[Unit] {
     delete(dc,d) *>
     status(d.id, Terminated, s"Decommissioning deployment ${sn} in ${dc.name}")
   }
+
+  /**
+    *
+    */
+  final case class Context(sn: Datacenter.StackName, ns: NamespaceName) {
+    val vaultPolicy: String = vault.policies.policyName(sn, ns)
+  }
+
+  def renderer: Render[Magnetar.Ctx] =
+    new Render[Magnetar.Ctx] {
+      def from(context: Ctx): Map[String, EnvValue] = {
+
+        import context._
+        import keys._
+        import syntax._
+
+        val policies: List[EnvValue] =
+          EnvValue.mkMap(vaultPolicyName asValue vaultPolicy) :: Nil
+
+        (vaultPolicies asValue policies) |*|
+        (vaultChangeMode asValue "restart") |*|
+        (vaultChangeSignal asValue "") |*|
+        (dockerNetworkMode asValue "bridge")
+      }
+    }
 }

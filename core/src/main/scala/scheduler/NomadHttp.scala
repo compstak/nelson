@@ -19,7 +19,7 @@ package scheduler
 
 import nelson.Datacenter.{Deployment, StackName}
 import nelson.Manifest._
-import nelson.blueprint.{ContextRenderer, EnvValue, Render}
+import nelson.blueprint.{Render, EnvValue}
 import nelson.blueprint.DefaultBlueprints.magnetar
 import nelson.docker.Docker.Image
 
@@ -36,22 +36,10 @@ import scala.concurrent.ExecutionContext
 object NomadHttp {
   private val log = Logger[NomadHttp.type]
 
-  implicit val contextRendererNomadContext: ContextRenderer[Magnetar.Context] =
-    new ContextRenderer[Magnetar.Context] {
-      import Render.keys._
-      import EnvValue._
-
-      override def render(context: Magnetar.Context): Map[String, EnvValue] = {
-        import context._
-        Map(
-          (vaultPolicies, ListValue(
-            MapValue(Map((vaultPolicyName, StringValue(getPolicyName(ns, n))))) :: Nil
-          ))
-        )
-      }
+  implicit val MagnetarRenderer: Render[Magnetar.Context] =
+    new Render[Magnetar.Context] {
+      def from(a: Magnetar.Context): Map[String, EnvValue] = Map.empty
     }
-
-  def getPolicyName(ns: NamespaceName, name: String) = s"nelson__${ns.root.asString}__${name}"
 }
 
 final class NomadHttp(
@@ -142,8 +130,9 @@ final class NomadHttp(
 
     val env = plan.environment.workflow match {
       case Magnetar => Render
-        .makeEnv(ContextRenderer.Base(image, dc, ns, unit, version, plan, hash),
-                 Magnetar.Context(ns, name)).pure[IO]
+        .makeEnv(Render.Context(image, dc, ns, unit, version, plan, hash),
+                 Magnetar.Context(sn, ns))
+        .pure[IO]
       case wf => IO.raiseError(WorkflowNotSupported(wf.name, "nomad"))
     }
 

@@ -15,6 +15,8 @@
 //:
 //: ----------------------------------------------------------------------------
 package nelson
+
+import nelson.blueprint.Render
 //
 //    dev namespace
 // +-------------------+
@@ -167,11 +169,13 @@ trait RoutingFixtures {
     )
 
   val emptyWorkflow = new Workflow[Unit] {
+    type Ctx = Unit
     override val name = "empty"
     def deploy(id: ID, hash: String, unit: Manifest.UnitDef @@ Manifest.Versioned, e: Manifest.Plan, dc: Datacenter, ns: Manifest.Namespace): WorkflowF[Unit] =
       ().pure[WorkflowF]
     def destroy(d: Deployment, dc: Datacenter, ns: Namespace): WorkflowF[Unit] =
       ().pure[WorkflowF]
+    def renderer: Render[Unit] = Render.PassThrough
   }
 
   def mkDeployment(id: Long, tag: String): Github.DeploymentEvent = {

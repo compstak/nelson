@@ -16,8 +16,12 @@
 package nelson
 package blueprint
 
+import EnvValue._
+
 import java.time.Instant
-import cats.syntax.either._
+
+import cats.Monoid
+import cats.implicits._
 
 case class Blueprint(
   guid: GUID,
@@ -34,6 +38,10 @@ case class Blueprint(
 }
 
 object Blueprint {
+
+  type Ctx = Map[String, EnvValue]
+
+  type CtxAtom = (String, EnvValue)
 
   /**
    * We will serialize references to blueprints with a simple delimited string:
@@ -86,4 +94,21 @@ object Blueprint {
       override def toString = "invalid"
     }
   }
+
+  implicit val blueprintContextMonoid: Monoid[Ctx] =
+    new Monoid[Ctx] {
+      def empty: Ctx = Map.empty[String, EnvValue]
+
+      def combine(x: Ctx, y: Ctx): Ctx = {
+        val ex = x.filterKeys(!y.keys.toList.contains_(_))
+        val in = x.filterKeys(y.keys.toList.contains_)
+          .map { x =>
+            val (k, vx) = x
+            (k, vx |+| y(k))
+          }
+        val ey = y.filterKeys(!x.keys.toList.contains_(_))
+
+        ex |+| in |+| ey
+      }
+    }
 }

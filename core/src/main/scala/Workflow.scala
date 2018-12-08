@@ -16,20 +16,19 @@
 //: ----------------------------------------------------------------------------
 package nelson
 
-import nelson.Datacenter.{Deployment}
-import nelson.Manifest.{UnitDef,Versioned,Plan,AlertOptOut}
+import nelson.Datacenter.Deployment
+import nelson.Manifest.{AlertOptOut, Plan, UnitDef, Versioned}
 import nelson.docker.Docker.Image
 import nelson.docker.DockerOp
 import nelson.logging.LoggingOp
 import nelson.scheduler.SchedulerOp
-import nelson.storage.{StoreOp}
-import nelson.vault.{Vault,policies}
-
+import nelson.storage.StoreOp
+import nelson.vault.{Vault, policies}
 import cats.data.{EitherK, OptionT}
 import cats.free.Free
 import cats.implicits._
-
 import helm.ConsulOp
+import nelson.blueprint.Render
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -47,9 +46,11 @@ import scala.concurrent.duration.FiniteDuration
  * Workflows define both setup (deploy) and teardown (detroy) workflow
  */
 trait Workflow[O] {
+  type Ctx
   def name: WorkflowRef
   def deploy(id: ID, hash: String, unit: UnitDef @@ Versioned, p: Plan, dc: Datacenter, ns: Manifest.Namespace): Workflow.WorkflowF[O]
   def destroy(d: Deployment, dc: Datacenter, ns: Datacenter.Namespace): Workflow.WorkflowF[O]
+  def renderer: Render[Ctx]
 }
 
 object Workflow {
